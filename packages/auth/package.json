@@ -1,0 +1,17 @@
+{
+  "name": "@restroops/auth",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "dependencies": {
+    "bcrypt": "^5.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "otplib": "^13.4.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/qrcode": "^1.5.6"
+  }
+}

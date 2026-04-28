@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 16, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/apps/web-admin/src/middleware.ts"],"sourcesContent":["import { NextResponse } from 'next/server';\nimport type { NextRequest } from 'next/server';\n\nexport function middleware(request: NextRequest) {\n  // Simple check for now, in prod this would check a secure cookie\n  // const token = request.cookies.get('adminToken')?.value;\n  \n  return NextResponse.next();\n}\n\nexport const config = {\n  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)'],\n};\n"],"names":["middleware","request","next","config","matcher"],"mappings":";;;;;;AAAA;AAAA;;AAGO,SAASA,WAAWC,OAAoB;IAC7C,iEAAiE;IACjE,0DAA0D;IAE1D,OAAO,qOAAY,CAACC,IAAI;AAC1B;AAEO,MAAMC,SAAS;IACpBC,SAAS;QAAC;KAA0D;AACtE"}}]
+}

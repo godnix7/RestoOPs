@@ -1,0 +1,10 @@
+{
+  "name": "@restroops/observability",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "dependencies": {
+    "pino": "^8.0.0",
+    "sentry": "@sentry/node"
+  }
+}

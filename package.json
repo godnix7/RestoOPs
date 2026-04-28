@@ -1,0 +1,23 @@
+{
+  "name": "restroops-ai",
+  "version": "1.0.0",
+  "packageManager": "npm@11.6.1",
+  "private": true,
+  "description": "RestroOps AI - Production Build",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "db:migrate": "powershell ./scripts/migrate.ps1",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}
