@@ -3,18 +3,24 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, DollarSign, Calendar, Tag } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
 
 export default function LogSaleModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const [amount, setAmount] = useState('');
-  const [source, setSource] = useState('Manual');
+  const [source, setSource] = useState('Manual Entry');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // API call to log manual sale
-      await new Promise(r => setTimeout(r, 1000)); // Mock
+      await apiClient.post('/dashboard/transactions', {
+        amount: parseFloat(amount),
+        type: 'revenue',
+        category: 'Manual',
+        description: `Manual entry: ${source}`,
+        restaurantId: 'temp-restaurant-id' // In real app, get from context
+      });
       onClose();
     } catch (err) {
       alert('Error logging sale');

@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import redis from '@fastify/redis';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
@@ -11,10 +12,11 @@ import plaidRoutes from './routes/plaid.js';
 import squareRoutes from './routes/square.js';
 import quickbooksRoutes from './routes/quickbooks.js';
 import billingRoutes from './routes/billing.js';
+import adminRoutes from './routes/admin.js';
 import { authenticate } from './middleware/auth.js';
 import { enforcePolicyAcceptance } from './middleware/policyGate.js';
 import { setupErrorHandler } from './middleware/errorHandler.js';
-import cors from '@fastify/cors';
+import { injectDbWithRls } from './middleware/dbScope.js';
 
 dotenv.config();
 
@@ -30,6 +32,11 @@ await fastify.register(cors, {
   credentials: true,
 });
 
+await fastify.register(cookie, {
+  secret: process.env.COOKIE_SECRET || 'cookie-secret',
+  hook: 'onRequest',
+});
+
 fastify.register(redis, {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: parseInt(process.env.REDIS_PORT || '6379'),
@@ -39,6 +46,7 @@ setupErrorHandler(fastify);
 
 // Global Hooks
 fastify.addHook('preHandler', async (request, reply) => {
+  await injectDbWithRls(request, reply);
   if (request.url.startsWith('/auth') || request.url === '/health') return;
   await authenticate(request, reply);
   await enforcePolicyAcceptance(request, reply);
@@ -54,6 +62,7 @@ fastify.register(plaidRoutes, { prefix: '/plaid' });
 fastify.register(squareRoutes, { prefix: '/square' });
 fastify.register(quickbooksRoutes, { prefix: '/quickbooks' });
 fastify.register(billingRoutes, { prefix: '/billing' });
+fastify.register(adminRoutes, { prefix: '/admin' });
 
 // Health Check
 fastify.get('/health', async (request, reply) => {

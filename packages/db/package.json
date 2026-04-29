@@ -2,6 +2,7 @@
   "name": "@restroops/db",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "main": "./index.ts",
   "dependencies": {
     "pg": "^8.0.0",

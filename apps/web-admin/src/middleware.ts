@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Simple check for now, in prod this would check a secure cookie
-  // const token = request.cookies.get('adminToken')?.value;
+  const token = request.cookies.get('adminToken')?.value;
+  
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
   
   return NextResponse.next();
 }

@@ -1,12 +1,11 @@
 import { FastifyInstance } from 'fastify';
-import { createDb } from '@restroops/db';
 import { payrollApprovalSchema } from '@restroops/shared';
-import { PayrollAnalyzer } from '../services/payrollAnalyzer.js';
+import { ROLES } from '@restroops/auth';
+import { authorize } from '../middleware/auth.js';
 
 export default async function payrollRoutes(fastify: FastifyInstance) {
-  const db = createDb(process.env.DATABASE_URL || '');
-
   fastify.get('/runs/current', async (request, reply) => {
+    const db = request.db;
     const restaurantId = (request.query as any).restaurantId;
     if (!restaurantId) return reply.status(400).send({ message: 'restaurantId required' });
 
@@ -28,39 +27,41 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
     return { ...run, lineItems };
   });
 
-  fastify.post('/runs/:id/approve', async (request, reply) => {
+  fastify.post('/runs/:id/approve', {
+    preHandler: [authorize([ROLES.OWNER, ROLES.SUPER_ADMIN])]
+  }, async (request, reply) => {
     const { id } = request.params as any;
     const user = request.user as any;
+    const db = request.db;
 
-    if (user.role !== 'owner' && user.role !== 'super_admin') {
-      return reply.status(403).send({ message: 'Only owners can approve payroll' });
-    }
+    // Use RLS helper
+    return await request.rls(async (trx) => {
+      // Check for open exceptions
+      const exceptions = await trx
+        .selectFrom('ai_exceptions')
+        .select('id')
+        .where('entity_id', '=', id)
+        .where('status', '=', 'open')
+        .execute();
 
-    // Check for open exceptions
-    const exceptions = await db
-      .selectFrom('ai_exceptions')
-      .select('id')
-      .where('entity_id', '=', id)
-      .where('status', '=', 'open')
-      .execute();
+      if (exceptions.length > 0) {
+        return reply.status(400).send({ 
+          message: 'Cannot approve payroll with open exceptions',
+          exceptionCount: exceptions.length 
+        });
+      }
 
-    if (exceptions.length > 0) {
-      return reply.status(400).send({ 
-        message: 'Cannot approve payroll with open exceptions',
-        exceptionCount: exceptions.length 
-      });
-    }
+      await trx
+        .updateTable('payroll_runs')
+        .set({ 
+          status: 'approved',
+          approved_by: user.userId,
+          approved_at: new Date()
+        })
+        .where('id', '=', id)
+        .execute();
 
-    await db
-      .updateTable('payroll_runs')
-      .set({ 
-        status: 'approved',
-        approved_by: user.userId,
-        approved_at: new Date()
-      })
-      .where('id', '=', id)
-      .execute();
-
-    return { message: 'Payroll approved' };
+      return { message: 'Payroll approved' };
+    });
   });
 }

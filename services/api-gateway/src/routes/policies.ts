@@ -3,11 +3,8 @@ import { createDb } from '@restroops/db';
 import { policyAcceptanceSchema } from '@restroops/shared';
 
 export default async function policyRoutes(fastify: FastifyInstance) {
-  const db = createDb(process.env.DATABASE_URL || '');
-
-  // Get current published policies
   fastify.get('/', async (request, reply) => {
-    const policies = await db
+    const policies = await request.db
       .selectFrom('policies')
       .selectAll()
       .where('is_published', '=', true)
@@ -15,12 +12,31 @@ export default async function policyRoutes(fastify: FastifyInstance) {
     return policies;
   });
 
-  // Accept policies
+  fastify.get('/pending', async (request, reply) => {
+    const user = request.user as any;
+    if (!user) return [];
+
+    const db = request.db;
+
+    // Subquery for accepted policy IDs
+    const acceptedIds = db
+      .selectFrom('policy_acceptances')
+      .select('policy_id')
+      .where('user_id', '=', user.userId);
+
+    const pending = await db
+      .selectFrom('policies')
+      .selectAll()
+      .where('is_published', '=', true)
+      .where('id', 'not in', acceptedIds)
+      .execute();
+
+    return pending;
+  });
+
   fastify.post('/accept', async (request, reply) => {
     const { policyIds } = policyAcceptanceSchema.parse(request.body);
     const user = request.user as any;
-
-    if (!user) return reply.status(401).send({ message: 'Unauthorized' });
 
     const acceptances = policyIds.map(id => ({
       user_id: user.userId,
@@ -29,7 +45,7 @@ export default async function policyRoutes(fastify: FastifyInstance) {
       user_agent: request.headers['user-agent']
     }));
 
-    await db
+    await request.db
       .insertInto('policy_acceptances')
       .values(acceptances)
       .execute();

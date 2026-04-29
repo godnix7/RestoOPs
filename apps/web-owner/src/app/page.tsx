@@ -38,11 +38,6 @@ export default function Dashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-    }
-    
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -62,15 +57,15 @@ export default function Dashboard() {
 
         <nav className="space-y-2 flex-1">
           {[
-            { icon: LayoutDashboard, label: 'Overview' },
-            { icon: BarChart3, label: 'Accounting' },
-            { icon: Users, label: 'Payroll' },
-            { icon: Receipt, label: 'Invoices' },
-            { icon: MessageSquare, label: 'AI Agent' },
+            { icon: LayoutDashboard, label: 'Overview', path: '/' },
+            { icon: BarChart3, label: 'Accounting', path: '/accounting' },
+            { icon: Users, label: 'Payroll', path: '/payroll' },
+            { icon: Receipt, label: 'Invoices', path: '/invoices' },
+            { icon: MessageSquare, label: 'AI Agent', action: () => setIsAiOpen(true) },
           ].map((item) => (
             <button
               key={item.label}
-              onClick={() => setActiveTab(item.label)}
+              onClick={() => item.path ? router.push(item.path) : item.action?.()}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeTab === item.label ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               <item.icon className="w-5 h-5" />
@@ -80,7 +75,10 @@ export default function Dashboard() {
         </nav>
 
         <div className="pt-6 border-t border-white/5 space-y-4">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <button 
+            onClick={() => router.push('/settings')}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+          >
             <Settings className="w-5 h-5" />
             <span className="font-medium">Settings</span>
           </button>
@@ -102,11 +100,14 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-white transition-all relative">
+            <button 
+              onClick={() => alert('Notifications panel coming soon')}
+              className="p-2.5 glass rounded-xl text-slate-400 hover:text-white transition-all relative"
+            >
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full border-2 border-slate-900"></span>
             </button>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 border border-white/20"></div>
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 border border-white/20 cursor-pointer" onClick={() => router.push('/profile')}></div>
           </div>
         </header>
 

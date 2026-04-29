@@ -33,6 +33,10 @@ export class AuthService {
     return jwt.sign(payload, secret, { expiresIn: this.REFRESH_TOKEN_EXPIRY as any });
   }
 
+  static signTempToken(payload: { userId: string; pendingMfa: boolean }, secret: string): string {
+    return jwt.sign(payload, secret, { expiresIn: '5m' });
+  }
+
   static verifyToken(token: string, secret: string): TokenPayload {
     return jwt.verify(token, secret) as TokenPayload;
   }

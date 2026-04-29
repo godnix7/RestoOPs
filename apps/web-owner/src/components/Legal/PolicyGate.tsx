@@ -2,50 +2,40 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Check, ArrowRight } from 'lucide-react';
+import { Shield, Check, ArrowRight, X } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
 
 export default function PolicyGate() {
   const [show, setShow] = useState(false);
   const [policies, setPolicies] = useState<any[]>([]);
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
+  const [readingPolicy, setReadingPolicy] = useState<any>(null);
 
   useEffect(() => {
-    // Check if we need to show the gate by calling a light health check or specific endpoint
     const checkPolicies = async () => {
-      const res = await fetch('http://localhost:3001/policies/pending', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.status === 403) {
-        const data = await res.json();
-        if (data.code === 'POLICIES_NOT_ACCEPTED') {
-          // Fetch policy contents
-          const pRes = await fetch('http://localhost:3001/policies/latest');
-          const pData = await pRes.json();
-          setPolicies(pData);
-          setShow(true);
+      try {
+        const res = await apiClient.get('/policies/pending');
+        if (res.status === 200) {
+          const data = await res.json();
+          if (data.length > 0) {
+            setPolicies(data);
+            setShow(true);
+          }
         }
+      } catch (err) {
+        // Silently fail or log
       }
     };
     
-    if (localStorage.getItem('token')) {
-      checkPolicies();
-    }
+    checkPolicies();
   }, []);
 
   const handleAccept = async () => {
     setLoading(true);
     try {
-      await Promise.all(policies.map(p => 
-        fetch('http://localhost:3001/policies/accept', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({ policyId: p.id })
-        })
-      ));
+      const policyIds = Object.keys(accepted).filter(id => accepted[id]);
+      await apiClient.post('/policies/accept', { policyIds });
       setShow(false);
     } catch (err) {
       alert('Error accepting policies');
@@ -96,7 +86,12 @@ export default function PolicyGate() {
                   </button>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{policy.content}</p>
-                <button className="text-[10px] font-bold text-blue-400 mt-2 uppercase tracking-widest hover:text-blue-300">Read Full Document</button>
+                <button 
+                  onClick={() => setReadingPolicy(policy)}
+                  className="text-[10px] font-bold text-blue-400 mt-2 uppercase tracking-widest hover:text-blue-300"
+                >
+                  Read Full Document
+                </button>
               </div>
             ))}
           </div>
@@ -112,6 +107,21 @@ export default function PolicyGate() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+
+          <AnimatePresence>
+            {readingPolicy && (
+              <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setReadingPolicy(null)} className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" />
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-xl glass-card p-8 border border-white/10 max-h-[80vh] overflow-y-auto">
+                  <button onClick={() => setReadingPolicy(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
+                  <h3 className="text-xl font-bold mb-4">{readingPolicy.title}</h3>
+                  <div className="prose prose-invert text-sm text-slate-300 leading-relaxed">
+                    {readingPolicy.content_md || readingPolicy.content}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </AnimatePresence>

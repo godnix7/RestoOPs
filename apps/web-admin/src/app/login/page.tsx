@@ -9,15 +9,18 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
-  const [step, setStep] = useState(1); // 1: Login, 2: MFA
+  const [step, setStep] = useState(1);
+  const [tempToken, setTempToken] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('http://localhost:3001/auth/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -25,16 +28,22 @@ export default function AdminLoginPage() {
       const data = await res.json();
       if (res.ok) {
         if (data.mfaRequired) {
+          setTempToken(data.tempToken);
           setStep(2);
         } else {
-          localStorage.setItem('adminToken', data.accessToken);
+          // Set cookies via server route
+          await fetch('/api/auth/set-cookie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminToken: data.accessToken }),
+          });
           router.push('/');
         }
       } else {
-        alert(data.message || 'Login failed');
+        setError(data.message || 'Login failed');
       }
     } catch (err) {
-      alert('Connection error');
+      setError('Connection error');
     } finally {
       setLoading(false);
     }
@@ -43,9 +52,29 @@ export default function AdminLoginPage() {
   const handleVerifyMfa = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // MFA verification logic here
-    localStorage.setItem('adminToken', 'temp-admin-token');
-    router.push('/');
+    setError(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/verify-mfa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken, code: mfaCode }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await fetch('/api/auth/set-cookie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminToken: data.accessToken }),
+        });
+        router.push('/');
+      } else {
+        setError(data.message || 'MFA failed');
+      }
+    } catch (err) {
+      setError('Verification error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,6 +91,12 @@ export default function AdminLoginPage() {
           <h1 className="text-3xl font-bold tracking-tight text-gradient-purple">Admin Portal</h1>
           <p className="text-slate-400 text-sm mt-2 text-center">RestroOps Platform Infrastructure & Governance.</p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+            {error}
+          </div>
+        )}
 
         {step === 1 ? (
           <form onSubmit={handleLogin} className="space-y-6">

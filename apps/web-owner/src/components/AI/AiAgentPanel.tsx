@@ -11,6 +11,7 @@ import {
   Terminal,
   ArrowUpRight
 } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -34,22 +35,6 @@ export default function AiAgentPanel({
       suggestions: ['Show Labor Variance', 'Check Sales Trend', 'Current Payroll']
     }
   ]);
-
-  useEffect(() => {
-    if (isOpen && initialPrompt) {
-      setMessages(prev => [...prev, { role: 'user', content: initialPrompt }]);
-      setIsThinking(true);
-      // Mock response for the specific prompt
-      setTimeout(() => {
-        setIsThinking(false);
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `I've analyzed the insight: "${initialPrompt}". This spike was primarily caused by the dinner rush lasting 45 minutes longer than predicted.`,
-          suggestions: ['Adjust scheduling', 'View staff logs']
-        }]);
-      }, 1500);
-    }
-  }, [isOpen, initialPrompt]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,23 +45,47 @@ export default function AiAgentPanel({
     }
   }, [messages, isThinking]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const resetChat = () => {
+    setMessages([
+      { 
+        role: 'assistant', 
+        content: "Hello! I'm your RestroOps Auditor. How can I help you today?",
+        suggestions: ['Show Labor Variance', 'Check Sales Trend', 'Current Payroll']
+      }
+    ]);
+  };
 
-    const userMsg = input;
+  useEffect(() => {
+    if (isOpen && initialPrompt) {
+      handleSend(initialPrompt);
+    }
+  }, [isOpen, initialPrompt]);
+
+  const handleSend = async (text?: string) => {
+    const userMsg = text || input;
+    if (!userMsg.trim()) return;
+
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsThinking(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      setIsThinking(false);
+    try {
+      const res = await apiClient.post('/ai/chat', { 
+        message: userMsg,
+        restaurantId: 'temp-restaurant-id'
+      });
+      const data = await res.json();
+      
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: "Based on your data, your labor cost is currently at 32%, which is 4% higher than your target. This is mostly driven by overtime in the Kitchen department.",
-        suggestions: ['How to fix this?', 'View Kitchen Payroll']
+        content: data.response,
+        suggestions: data.suggestions
       }]);
-    }, 1500);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   return (
@@ -115,7 +124,7 @@ export default function AiAgentPanel({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
+                <button onClick={resetChat} className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
                   <RotateCcw className="w-4 h-4" />
                 </button>
                 <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
@@ -139,7 +148,11 @@ export default function AiAgentPanel({
                   {msg.suggestions && (
                     <div className="flex flex-wrap gap-2 mt-3">
                       {msg.suggestions.map((s, si) => (
-                        <button key={si} className="text-[11px] px-3 py-1.5 glass hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 rounded-full transition-all border-white/5 flex items-center gap-1">
+                        <button 
+                          key={si} 
+                          onClick={() => handleSend(s)}
+                          className="text-[11px] px-3 py-1.5 glass hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 rounded-full transition-all border-white/5 flex items-center gap-1"
+                        >
                           {s} <ArrowUpRight className="w-3 h-3" />
                         </button>
                       ))}
@@ -171,7 +184,7 @@ export default function AiAgentPanel({
                   className="w-full bg-slate-900/50 border border-white/10 rounded-2xl p-4 pr-14 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-600 resize-none h-24"
                 />
                 <button 
-                  onClick={handleSend}
+                  onClick={() => handleSend()}
                   disabled={!input.trim()}
                   className="absolute bottom-4 right-4 p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:grayscale"
                 >

@@ -10,26 +10,40 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('http://localhost:3001/auth/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem('token', data.accessToken);
+        if (data.mfaRequired) {
+          // TODO: Handle MFA in UI
+          setError('MFA required - feature coming soon');
+          return;
+        }
+        
+        // Set cookies via server route
+        await fetch('/api/auth/set-cookie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: data.accessToken, refreshToken: data.refreshToken }),
+        });
+        
         router.push('/');
       } else {
-        alert(data.message || 'Login failed');
+        setError(data.message || 'Login failed');
       }
     } catch (err) {
-      alert('Connection error');
+      setError('Connection error. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -49,6 +63,12 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
           <p className="text-slate-400 text-sm mt-2 text-center">Enter your credentials to access your <span className="text-blue-400">RestroOps</span> command center.</p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">

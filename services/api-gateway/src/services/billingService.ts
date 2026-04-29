@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { createDb } from '@restroops/db';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_key_to_prevent_crash', {
   apiVersion: '2025-01-27' as any,
 });
 

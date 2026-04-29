@@ -6,6 +6,33 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:3001/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.mfaRequired) {
+          alert('MFA Required. Please use the web portal to complete setup.');
+        } else {
+          alert('Login Successful! Welcome to RestroOps Mobile.');
+        }
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (err) {
+      alert('Connection error. Is the server running?');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -29,6 +56,7 @@ export default function App() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!loading}
             />
           </View>
 
@@ -41,12 +69,17 @@ export default function App() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              editable={!loading}
             />
           </View>
 
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Sign In</Text>
-            <ArrowRight color="#fff" size={20} />
+          <TouchableOpacity 
+            style={[styles.button, loading && { opacity: 0.7 }]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>{loading ? 'Authenticating...' : 'Sign In'}</Text>
+            {!loading && <ArrowRight color="#fff" size={20} />}
           </TouchableOpacity>
         </View>
       </View>

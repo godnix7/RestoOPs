@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiClient } from '@/lib/apiClient';
 import { 
   Shield, 
   Activity, 
@@ -27,11 +28,8 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/login');
-    }
-  }, [router]);
+    // Stats and initial data fetching handled in sub-components or via parent state
+  }, []);
 
   return (
     <div className="min-h-screen bg-admin-animate flex text-slate-200">
@@ -191,6 +189,16 @@ function OverviewTab() {
 }
 
 function OrganizationsTab() {
+  const [orgs, setOrgs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/admin/organizations')
+      .then(res => res.json())
+      .then(data => setOrgs(data))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="glass-card p-0">
       <div className="p-6 border-b border-white/5 flex justify-between items-center">
@@ -199,10 +207,36 @@ function OrganizationsTab() {
           <Plus className="w-4 h-4" /> Add Organization
         </button>
       </div>
-      <div className="p-12 text-center text-slate-500">
-        <Building2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
-        <p className="text-sm">Connect a new organization to start monitoring.</p>
-      </div>
+      
+      {loading ? (
+        <div className="p-12 text-center text-slate-500 animate-pulse">Loading organizations...</div>
+      ) : orgs.length > 0 ? (
+        <div className="divide-y divide-white/5">
+          {orgs.map((org, i) => (
+            <div key={i} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center font-bold text-purple-400 text-lg border border-purple-500/20">{org.name[0]}</div>
+                <div>
+                  <p className="font-bold">{org.name}</p>
+                  <p className="text-xs text-slate-500">Subscription: {org.subscription_tier || 'Starter'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Status</p>
+                  <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/20 uppercase">Active</span>
+                </div>
+                <button className="p-2 hover:bg-white/5 rounded-lg transition-colors"><ChevronRight className="w-4 h-4 text-slate-500" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-12 text-center text-slate-500">
+          <Building2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
+          <p className="text-sm">No organizations found.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -253,15 +287,36 @@ function PolicyTab() {
 }
 
 function LogsTab() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/admin/system-logs')
+      .then(res => res.json())
+      .then(data => setLogs(data))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="glass-card">
-      <h3 className="font-bold mb-6">Audit Logs</h3>
-      <div className="space-y-2">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="p-3 text-[10px] font-mono bg-black/20 rounded-lg text-slate-500">
-            [2025-01-28 14:22:0{i}] <span className="text-purple-400">INFO</span> - User {i}442 logged in from IP 192.168.1.1
-          </div>
-        ))}
+      <h3 className="font-bold mb-6 flex items-center justify-between">
+        Audit Logs
+        <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-1 rounded-lg uppercase tracking-widest">Real-time Feed</span>
+      </h3>
+      <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+        {loading ? (
+          <div className="text-center py-8 text-slate-500 italic text-xs">Accessing infrastructure logs...</div>
+        ) : logs.length > 0 ? (
+          logs.map((log, i) => (
+            <div key={i} className="p-3 text-[10px] font-mono bg-black/40 rounded-lg border border-white/5 text-slate-400 flex gap-4">
+              <span className="text-purple-500/50 shrink-0">[{new Date(log.created_at).toISOString()}]</span>
+              <span className={`font-bold shrink-0 ${log.action.includes('error') ? 'text-rose-500' : 'text-purple-400'}`}>{log.action.toUpperCase()}</span>
+              <span className="text-slate-300">User:{log.user_id} - {log.details}</span>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-slate-500 italic text-xs">No logs recorded.</div>
+        )}
       </div>
     </div>
   );

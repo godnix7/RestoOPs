@@ -3,12 +3,17 @@ import { AuthService, TokenPayload } from '@restroops/auth';
 
 export const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
   const authHeader = request.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized' });
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else {
+    token = request.cookies.token;
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return reply.status(401).send({ message: 'Unauthorized' });
+  }
 
   try {
     const payload = AuthService.verifyToken(token, process.env.JWT_SECRET || 'secret');

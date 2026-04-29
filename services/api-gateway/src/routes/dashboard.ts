@@ -88,4 +88,30 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
     return summary;
   });
+
+  fastify.post('/transactions', async (request, reply) => {
+    const { amount, type, category, description, restaurantId } = request.body as any;
+
+    if (!amount || !type || !restaurantId) {
+      return reply.status(400).send({ message: 'Missing required fields' });
+    }
+
+    await db
+      .insertInto('transactions')
+      .values({
+        amount,
+        type,
+        category: category || 'Uncategorized',
+        description: description || '',
+        restaurant_id: restaurantId,
+        date: new Date(),
+        status: 'completed',
+      })
+      .execute();
+
+    // Invalidate cache
+    await (fastify as any).redis.del(`dashboard:${restaurantId}`);
+
+    return { success: true };
+  });
 }
