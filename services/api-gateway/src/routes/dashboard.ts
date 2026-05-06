@@ -86,14 +86,24 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     // Cache the result for 5 minutes
     await (fastify as any).redis.set(cacheKey, JSON.stringify(summary), 'EX', 300);
 
-    return summary;
+    return {
+      success: true,
+      message: 'Dashboard summary retrieved successfully',
+      data: summary,
+      error: null
+    };
   });
 
   fastify.post('/transactions', async (request, reply) => {
     const { amount, type, category, description, restaurantId } = request.body as any;
 
     if (!amount || !type || !restaurantId) {
-      return reply.status(400).send({ message: 'Missing required fields' });
+      return reply.status(400).send({ 
+        success: false,
+        message: 'Missing required fields',
+        data: null,
+        error: { code: 'BAD_REQUEST' }
+      });
     }
 
     await db
@@ -112,6 +122,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     // Invalidate cache
     await (fastify as any).redis.del(`dashboard:${restaurantId}`);
 
-    return { success: true };
+    return { 
+      success: true, 
+      message: 'Transaction logged successfully',
+      data: null,
+      error: null 
+    };
   });
 }
+

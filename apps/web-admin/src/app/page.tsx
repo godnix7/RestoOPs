@@ -27,10 +27,6 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('Overview');
   const router = useRouter();
 
-  useEffect(() => {
-    // Stats and initial data fetching handled in sub-components or via parent state
-  }, []);
-
   return (
     <div className="min-h-screen bg-admin-animate flex text-slate-200">
       
@@ -83,7 +79,10 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2 glass px-4 py-2 rounded-xl text-xs font-semibold text-slate-400">
               <Server className="w-4 h-4" /> v1.0.4-stable
             </div>
-            <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-white transition-all">
+            <button 
+              onClick={() => alert('Settings module coming soon!')}
+              className="p-2.5 glass rounded-xl text-slate-400 hover:text-white transition-all"
+            >
               <Settings className="w-5 h-5" />
             </button>
           </div>
@@ -97,7 +96,7 @@ export default function AdminDashboard() {
             exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {activeTab === 'Overview' && <OverviewTab />}
+            {activeTab === 'Overview' && <OverviewTab onNavigate={setActiveTab} />}
             {activeTab === 'Organizations' && <OrganizationsTab />}
             {activeTab === 'Platform Users' && <UsersTab />}
             {activeTab === 'Policy Center' && <PolicyTab />}
@@ -110,16 +109,45 @@ export default function AdminDashboard() {
   );
 }
 
-function OverviewTab() {
+function OverviewTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const [stats, setStats] = useState<any>(null);
+  const [recentOrgs, setRecentOrgs] = useState<any[]>([]);
+  const [exceptions, setExceptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = () => {
+      setLoading(true);
+      Promise.all([
+        apiClient.get('/admin/stats').then(res => res.json()),
+        apiClient.get('/admin/recent-organizations').then(res => res.json()),
+        apiClient.get('/admin/system-exceptions').then(res => res.json())
+      ]).then(([statsRes, orgsRes, exceptionsRes]) => {
+        if (statsRes.success) setStats(statsRes.data);
+        if (orgsRes.success) setRecentOrgs(orgsRes.data);
+        if (exceptionsRes.success) setExceptions(exceptionsRes.data);
+      }).catch(err => {
+        console.error('Fetch error:', err);
+      }).finally(() => setLoading(false));
+
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const statItems = [
+    { label: 'Total Revenue', value: stats?.totalRevenue ? `$${Number(stats.totalRevenue).toLocaleString()}` : '$0', trend: '+14%', icon: Globe, color: 'blue' },
+    { label: 'Active Orgs', value: stats?.activeOrgs || '0', trend: '+8', icon: Building2, color: 'purple' },
+    { label: 'AI Agent Calls', value: stats?.aiAgentCalls || '0', trend: '+112%', icon: Zap, color: 'orange' },
+    { label: 'DB Health', value: stats?.dbHealth || '99.9%', trend: 'Stable', icon: Database, color: 'emerald' },
+  ];
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {[
-          { label: 'Total Revenue', value: '$1.2M', trend: '+14%', icon: Globe, color: 'blue' },
-          { label: 'Active Orgs', value: '142', trend: '+8', icon: Building2, color: 'purple' },
-          { label: 'AI Agent Calls', value: '45.2k', trend: '+112%', icon: Zap, color: 'orange' },
-          { label: 'DB Health', value: '99.9%', trend: 'Stable', icon: Database, color: 'emerald' },
-        ].map((stat, i) => (
+        {statItems.map((stat, i) => (
           <div key={i} className="glass-card flex flex-col gap-4">
             <div className="flex justify-between items-start">
               <div className={`p-3 rounded-2xl bg-purple-500/10 text-purple-400`}>
@@ -129,7 +157,7 @@ function OverviewTab() {
             </div>
             <div>
               <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold mt-1">{stat.value}</p>
+              <p className="text-2xl font-bold mt-1">{loading ? '...' : stat.value}</p>
             </div>
           </div>
         ))}
@@ -139,27 +167,32 @@ function OverviewTab() {
         <div className="lg:col-span-2 glass-card p-0 overflow-hidden">
           <div className="p-6 border-b border-white/5 flex justify-between items-center">
             <h3 className="font-bold">Recent Organizations</h3>
-            <button className="text-xs text-purple-400 font-bold hover:underline">View All</button>
+            <button 
+              onClick={() => onNavigate('Organizations')}
+              className="text-xs text-purple-400 font-bold hover:underline"
+            >
+              View All
+            </button>
           </div>
           <div className="divide-y divide-white/5">
-             {[
-              { name: 'The Gourmet Kitchen', owner: 'Nischay', status: 'active' },
-              { name: 'Sushi Zen Central', owner: 'M. Chen', status: 'active' },
-              { name: 'Pasta Palace', owner: 'G. Rossi', status: 'pending' },
-            ].map((org, i) => (
+             {loading ? (
+               <div className="p-12 text-center text-slate-500 animate-pulse">Loading data...</div>
+             ) : recentOrgs.length > 0 ? recentOrgs.map((org, i) => (
               <div key={i} className="p-4 flex items-center justify-between hover:bg-white/[0.02]">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center font-bold text-purple-400">{org.name[0]}</div>
                   <div>
                     <p className="text-sm font-bold">{org.name}</p>
-                    <p className="text-[10px] text-slate-500">{org.owner}</p>
+                    <p className="text-[10px] text-slate-500">Created: {new Date(org.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${org.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-orange-500/10 text-orange-400'}`}>
-                  {org.status}
+                <div className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400`}>
+                  {org.tier || 'Starter'}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="p-8 text-center text-slate-500 text-xs italic">No organizations yet.</div>
+            )}
           </div>
         </div>
 
@@ -169,18 +202,19 @@ function OverviewTab() {
             System Exceptions
           </h3>
           <div className="space-y-4">
-             {[
-              { msg: 'Plaid Sync Failure: Gourmet Kitchen', time: '2m ago' },
-              { msg: 'Stripe Webhook Mismatch', time: '14m ago' },
-            ].map((err, i) => (
+             {loading ? (
+               <div className="p-4 text-center text-slate-500 animate-pulse">Checking logs...</div>
+             ) : exceptions.length > 0 ? exceptions.map((err, i) => (
               <div key={i} className="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl flex gap-3">
                 <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-bold">{err.msg}</p>
-                  <p className="text-[10px] text-slate-500">{err.time}</p>
+                  <p className="text-[10px] font-bold">{err.description}</p>
+                  <p className="text-[10px] text-slate-500">{new Date(err.created_at).toLocaleTimeString()}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="p-4 text-center text-slate-500 text-[10px] italic">System clear. No exceptions found.</div>
+            )}
           </div>
         </div>
       </div>
@@ -192,18 +226,46 @@ function OrganizationsTab() {
   const [orgs, setOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchOrgs = () => {
+    setLoading(true);
     apiClient.get('/admin/organizations')
       .then(res => res.json())
-      .then(data => setOrgs(data))
+      .then(res => {
+        if (res.success) setOrgs(res.data);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchOrgs();
   }, []);
+
+  const handleAddOrg = async () => {
+    const name = prompt('Enter organization name:');
+    if (!name) return;
+
+    try {
+      const res = await apiClient.post('/admin/organizations', { name });
+      const response = await res.json();
+      if (response.success) {
+        alert('Organization added successfully!');
+        fetchOrgs();
+      } else {
+        alert(response.message || 'Failed to add organization.');
+      }
+    } catch (err) {
+      alert('Error adding organization.');
+    }
+  };
 
   return (
     <div className="glass-card p-0">
       <div className="p-6 border-b border-white/5 flex justify-between items-center">
         <h3 className="font-bold">Managed Organizations</h3>
-        <button className="btn-admin text-xs py-2 px-4 flex items-center gap-2">
+        <button 
+          onClick={handleAddOrg}
+          className="btn-admin text-xs py-2 px-4 flex items-center gap-2"
+        >
           <Plus className="w-4 h-4" /> Add Organization
         </button>
       </div>
@@ -218,7 +280,7 @@ function OrganizationsTab() {
                 <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center font-bold text-purple-400 text-lg border border-purple-500/20">{org.name[0]}</div>
                 <div>
                   <p className="font-bold">{org.name}</p>
-                  <p className="text-xs text-slate-500">Subscription: {org.subscription_tier || 'Starter'}</p>
+                  <p className="text-xs text-slate-500">Subscription: {org.tier || 'Starter'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
@@ -226,7 +288,12 @@ function OrganizationsTab() {
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Status</p>
                   <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/20 uppercase">Active</span>
                 </div>
-                <button className="p-2 hover:bg-white/5 rounded-lg transition-colors"><ChevronRight className="w-4 h-4 text-slate-500" /></button>
+                <button 
+                  onClick={() => alert(`Details for ${org.name} coming soon!`)}
+                  className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4 text-slate-500" />
+                </button>
               </div>
             </div>
           ))}
@@ -242,45 +309,111 @@ function OrganizationsTab() {
 }
 
 function UsersTab() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/admin/platform-users')
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) setUsers(res.data);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+
   return (
-    <div className="glass-card">
-      <h3 className="font-bold mb-6">Platform Access Control</h3>
-      <p className="text-sm text-slate-500">Manage super-admins and cross-tenant support staff.</p>
+    <div className="glass-card p-0">
+      <div className="p-6 border-b border-white/5 flex justify-between items-center">
+        <h3 className="font-bold">Platform Access Control</h3>
+        <span className="text-[10px] text-slate-500">Manage super-admins and support staff</span>
+      </div>
+      
+      {loading ? (
+        <div className="p-12 text-center text-slate-500 animate-pulse">Loading users...</div>
+      ) : users.length > 0 ? (
+        <div className="divide-y divide-white/5">
+          {users.map((user, i) => (
+            <div key={i} className="p-4 flex items-center justify-between hover:bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-slate-400 border border-white/5">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">{user.email}</p>
+                  <p className="text-[10px] text-slate-500">Role: {user.role}</p>
+                </div>
+              </div>
+              <div className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${user.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-slate-500'}`}>
+                {user.is_active ? 'Active' : 'Inactive'}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-12 text-center text-slate-500 italic text-xs">No platform users found.</div>
+      )}
     </div>
   );
 }
 
 function PolicyTab() {
+  const [policies, setPolicies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/policies')
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) setPolicies(res.data);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+
   return (
     <div className="space-y-6">
-      <div className="glass-card p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="glass-card p-0">
+        <div className="p-6 border-b border-white/5 flex justify-between items-center">
           <h3 className="font-bold">Legal Documents & Policies</h3>
-          <button className="btn-admin text-xs py-2 px-4">New Version</button>
+          <button 
+            onClick={() => alert('Policy creation module coming soon!')}
+            className="btn-admin text-xs py-2 px-4"
+          >
+            New Version
+          </button>
         </div>
-        <div className="space-y-4">
-          {[
-            { title: 'Terms of Service', version: 'v2.4', updated: '2025-01-20' },
-            { title: 'Privacy Policy', version: 'v1.8', updated: '2024-12-15' },
-            { title: 'Data Processing Agreement', version: 'v2.1', updated: '2025-01-05' },
-          ].map((doc, i) => (
-            <div key={i} className="p-4 glass rounded-2xl flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                  <Lock className="w-5 h-5" />
+        
+        {loading ? (
+          <div className="p-12 text-center text-slate-500 animate-pulse">Loading policies...</div>
+        ) : policies.length > 0 ? (
+          <div className="divide-y divide-white/5">
+            {policies.map((doc, i) => (
+              <div key={i} className="p-6 flex items-center justify-between hover:bg-white/[0.02]">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold">{doc.type.replace(/_/g, ' ').toUpperCase()}</p>
+                    <p className="text-xs text-slate-500">Last updated: {new Date(doc.updated_at).toLocaleDateString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm">{doc.title}</p>
-                  <p className="text-[10px] text-slate-500">Last updated: {doc.updated}</p>
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-bold px-2 py-1 bg-white/5 rounded-lg border border-white/10">{doc.version}</span>
+                  <button 
+                    onClick={() => alert(`Editing ${doc.type}...`)}
+                    className="text-xs font-bold text-purple-400 hover:underline"
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] font-bold px-2 py-1 bg-white/5 rounded-lg">{doc.version}</span>
-                <button className="text-xs font-bold text-purple-400 hover:underline">Edit</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-12 text-center text-slate-500 italic text-xs">No policies published.</div>
+        )}
       </div>
     </div>
   );
@@ -291,10 +424,19 @@ function LogsTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient.get('/admin/system-logs')
-      .then(res => res.json())
-      .then(data => setLogs(data))
-      .finally(() => setLoading(false));
+    const fetchLogs = () => {
+      apiClient.get('/admin/system-logs')
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) setLogs(res.data);
+        })
+        .finally(() => setLoading(false));
+    };
+
+
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 15000); // Logs refresh faster
+    return () => clearInterval(interval);
   }, []);
 
   return (

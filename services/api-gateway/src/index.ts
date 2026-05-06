@@ -40,6 +40,8 @@ await fastify.register(cookie, {
 fastify.register(redis, {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: parseInt(process.env.REDIS_PORT || '6379'),
+  lazyConnect: true,
+  connectTimeout: 500,
 });
 
 setupErrorHandler(fastify);
@@ -66,8 +68,14 @@ fastify.register(adminRoutes, { prefix: '/admin' });
 
 // Health Check
 fastify.get('/health', async (request, reply) => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
+  return { 
+    success: true,
+    message: 'System healthy',
+    data: { status: 'ok', timestamp: new Date().toISOString() },
+    error: null
+  };
 });
+
 
 // Start Server
 const start = async () => {

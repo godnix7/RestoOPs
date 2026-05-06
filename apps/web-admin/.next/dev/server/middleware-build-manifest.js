@@ -1,13 +1,50 @@
 globalThis.__BUILD_MANIFEST = {
   "pages": {
-    "/_app": []
+    "/_app": [
+      "static/chunks/0tu._next_dist_compiled_00wg5cl._.js",
+      "static/chunks/0tu._next_dist_shared_lib_0a_rgo3._.js",
+      "static/chunks/0tu._next_dist_client_04-ymwr._.js",
+      "static/chunks/0tu._next_dist_0bqzt2c._.js",
+      "static/chunks/0tu._next_app_0-zep6n.js",
+      "static/chunks/[next]_entry_page-loader_ts_02c.zfg._.js",
+      "static/chunks/0tu._react-dom_0d0e65h._.js",
+      "static/chunks/_11lkvak._.js",
+      "static/chunks/[root-of-the-server]__0mc52k3._.js",
+      "static/chunks/apps_web-admin_pages__app_07xvfw~._.js",
+      "static/chunks/turbopack-apps_web-admin_pages__app_0c_kg07._.js"
+    ],
+    "/_error": [
+      "static/chunks/0tu._next_dist_compiled_00wg5cl._.js",
+      "static/chunks/0tu._next_dist_shared_lib_0dmlb8p._.js",
+      "static/chunks/0tu._next_dist_client_04-ymwr._.js",
+      "static/chunks/0tu._next_dist_0kzr073._.js",
+      "static/chunks/[next]_entry_page-loader_ts_0kcqf11._.js",
+      "static/chunks/0tu._react-dom_0d0e65h._.js",
+      "static/chunks/_11lkvak._.js",
+      "static/chunks/[root-of-the-server]__0qqda-a._.js",
+      "static/chunks/apps_web-admin_pages__error_07xvfw~._.js",
+      "static/chunks/turbopack-apps_web-admin_pages__error_0zd-i1g._.js"
+    ]
   },
   "devFiles": [],
-  "polyfillFiles": [],
+  "polyfillFiles": [
+    "static/chunks/0tu._next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
   "lowPriorityFiles": [
     "static/development/_buildManifest.js",
     "static/development/_ssgManifest.js",
     "static/development/_clientMiddlewareManifest.js"
   ],
-  "rootMainFiles": []
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0hj0l04._.js",
+    "static/chunks/0tu._next_dist_compiled_next-devtools_index_13j2jvx.js",
+    "static/chunks/0tu._next_dist_compiled_react-dom_09i38l-._.js",
+    "static/chunks/0tu._next_dist_compiled_react-server-dom-turbopack_0g04m2b._.js",
+    "static/chunks/0tu._next_dist_compiled_0mf2gb1._.js",
+    "static/chunks/0tu._next_dist_client_0bhm~5y._.js",
+    "static/chunks/0tu._next_dist_0~qwfbe._.js",
+    "static/chunks/node_modules_@swc_helpers_cjs_0-4ujiy._.js",
+    "static/chunks/apps_web-admin_0rqeker._.js",
+    "static/chunks/turbopack-apps_web-admin_0usnmm_._.js"
+  ]
 };

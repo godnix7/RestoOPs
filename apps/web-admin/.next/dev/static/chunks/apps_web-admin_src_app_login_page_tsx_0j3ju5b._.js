@@ -16,9 +16,15 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$arrow$2d$right$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ArrowRight$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/arrow-right.mjs [app-client] (ecmascript) <export default as ArrowRight>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$smartphone$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Smartphone$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/smartphone.mjs [app-client] (ecmascript) <export default as Smartphone>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/apps/web-admin/node_modules/next/navigation.js [app-client] (ecmascript)");
+(()=>{
+    const e = new Error("Cannot find module '@/lib/apiClient'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+})();
 ;
 var _s = __turbopack_context__.k.signature();
 'use client';
+;
 ;
 ;
 ;
@@ -48,12 +54,15 @@ function AdminLoginPage() {
                     password
                 })
             });
-            const data = await res.json();
-            if (res.ok) {
+            const response = await res.json();
+            if (response.success) {
+                const { data } = response;
                 if (data.mfaRequired) {
                     setTempToken(data.tempToken);
                     setStep(2);
                 } else {
+                    // Store token in memory
+                    setAccessToken(data.accessToken);
                     // Set cookies via server route
                     await fetch('/api/auth/set-cookie', {
                         method: 'POST',
@@ -67,7 +76,7 @@ function AdminLoginPage() {
                     router.push('/');
                 }
             } else {
-                setError(data.message || 'Login failed');
+                setError(response.message || 'Login failed');
             }
         } catch (err) {
             setError('Connection error');
@@ -90,8 +99,11 @@ function AdminLoginPage() {
                     code: mfaCode
                 })
             });
-            const data = await res.json();
-            if (res.ok) {
+            const response = await res.json();
+            if (response.success) {
+                const { data } = response;
+                // Store token in memory
+                setAccessToken(data.accessToken);
                 await fetch('/api/auth/set-cookie', {
                     method: 'POST',
                     headers: {
@@ -103,7 +115,7 @@ function AdminLoginPage() {
                 });
                 router.push('/');
             } else {
-                setError(data.message || 'MFA failed');
+                setError(response.message || 'MFA failed');
             }
         } catch (err) {
             setError('Verification error');
@@ -133,12 +145,12 @@ function AdminLoginPage() {
                                 className: "text-white w-8 h-8"
                             }, void 0, false, {
                                 fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                lineNumber: 89,
+                                lineNumber: 100,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 88,
+                            lineNumber: 99,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
@@ -146,7 +158,7 @@ function AdminLoginPage() {
                             children: "Admin Portal"
                         }, void 0, false, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 91,
+                            lineNumber: 102,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -154,13 +166,13 @@ function AdminLoginPage() {
                             children: "RestroOps Platform Infrastructure & Governance."
                         }, void 0, false, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 92,
+                            lineNumber: 103,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                    lineNumber: 87,
+                    lineNumber: 98,
                     columnNumber: 9
                 }, this),
                 error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -168,7 +180,7 @@ function AdminLoginPage() {
                     children: error
                 }, void 0, false, {
                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                    lineNumber: 96,
+                    lineNumber: 107,
                     columnNumber: 11
                 }, this),
                 step === 1 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -183,7 +195,7 @@ function AdminLoginPage() {
                                     children: "Admin Email"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 104,
+                                    lineNumber: 115,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -193,7 +205,7 @@ function AdminLoginPage() {
                                             className: "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                            lineNumber: 106,
+                                            lineNumber: 117,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -205,19 +217,19 @@ function AdminLoginPage() {
                                             className: "w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                            lineNumber: 107,
+                                            lineNumber: 118,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 105,
+                                    lineNumber: 116,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 103,
+                            lineNumber: 114,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -228,7 +240,7 @@ function AdminLoginPage() {
                                     children: "Master Password"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 119,
+                                    lineNumber: 130,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -238,7 +250,7 @@ function AdminLoginPage() {
                                             className: "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                            lineNumber: 121,
+                                            lineNumber: 132,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -250,19 +262,19 @@ function AdminLoginPage() {
                                             className: "w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                            lineNumber: 122,
+                                            lineNumber: 133,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 120,
+                                    lineNumber: 131,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 118,
+                            lineNumber: 129,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -275,19 +287,19 @@ function AdminLoginPage() {
                                     className: "w-5 h-5 group-hover:translate-x-1 transition-transform"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 139,
+                                    lineNumber: 150,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 133,
+                            lineNumber: 144,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                    lineNumber: 102,
+                    lineNumber: 113,
                     columnNumber: 11
                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
                     onSubmit: handleVerifyMfa,
@@ -301,7 +313,7 @@ function AdminLoginPage() {
                                     children: "MFA Authentication Code"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 145,
+                                    lineNumber: 156,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -311,7 +323,7 @@ function AdminLoginPage() {
                                             className: "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                            lineNumber: 147,
+                                            lineNumber: 158,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -324,19 +336,19 @@ function AdminLoginPage() {
                                             className: "w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm text-center tracking-[1em] font-bold"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                            lineNumber: 148,
+                                            lineNumber: 159,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                                    lineNumber: 146,
+                                    lineNumber: 157,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 144,
+                            lineNumber: 155,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -346,7 +358,7 @@ function AdminLoginPage() {
                             children: "Verify & Enter"
                         }, void 0, false, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 160,
+                            lineNumber: 171,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$web$2d$admin$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -356,24 +368,24 @@ function AdminLoginPage() {
                             children: "Back to Login"
                         }, void 0, false, {
                             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                            lineNumber: 167,
+                            lineNumber: 178,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-                    lineNumber: 143,
+                    lineNumber: 154,
                     columnNumber: 11
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-            lineNumber: 82,
+            lineNumber: 93,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/apps/web-admin/src/app/login/page.tsx",
-        lineNumber: 81,
+        lineNumber: 92,
         columnNumber: 5
     }, this);
 }

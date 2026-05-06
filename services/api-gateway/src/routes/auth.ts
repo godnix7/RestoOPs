@@ -23,7 +23,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
       .executeTakeFirst();
 
     if (!user || !(await AuthService.comparePassword(password, user.password_hash))) {
-      return reply.status(401).send({ message: 'Invalid credentials' });
+      return reply.status(401).send({ 
+        success: false, 
+        message: 'Invalid credentials',
+        data: null,
+        error: { code: 'UNAUTHORIZED' }
+      });
     }
 
     if (user.mfa_enabled) {
@@ -31,7 +36,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
         { userId: user.id, pendingMfa: true },
         process.env.JWT_SECRET || 'secret'
       );
-      return { mfaRequired: true, tempToken };
+      return { 
+        success: true,
+        message: 'MFA required',
+        data: { mfaRequired: true, tempToken },
+        error: null
+      };
     }
 
     // Get associated restaurants for claims
@@ -69,14 +79,19 @@ export default async function authRoutes(fastify: FastifyInstance) {
       .execute();
 
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        organizationId: user.organization_id,
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          organizationId: user.organization_id,
+        },
       },
+      error: null
     };
   });
 
@@ -95,7 +110,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
         .executeTakeFirstOrThrow();
 
       const isValid = AuthService.verifyMfaToken(code, user.mfa_secret!);
-      if (!isValid) return reply.status(401).send({ message: 'Invalid MFA code' });
+      if (!isValid) {
+        return reply.status(401).send({ 
+          success: false, 
+          message: 'Invalid MFA code',
+          data: null,
+          error: { code: 'INVALID_MFA' }
+        });
+      }
 
       // Get associations and issue real tokens
       const userRestaurants = await db
@@ -118,9 +140,19 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       await (fastify as any).redis.set(`refresh_token:${user.id}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
 
-      return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } };
+      return { 
+        success: true,
+        message: 'MFA verified',
+        data: { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } },
+        error: null
+      };
     } catch (err) {
-      return reply.status(401).send({ message: 'MFA Verification failed' });
+      return reply.status(401).send({ 
+        success: false, 
+        message: 'MFA Verification failed',
+        data: null,
+        error: { code: 'VERIFICATION_FAILED' }
+      });
     }
   });
 
@@ -131,63 +163,93 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const storedToken = await (fastify as any).redis.get(`refresh_token:${payload.userId}`);
       
       if (storedToken !== refreshToken) {
-        return reply.status(401).send({ message: 'Invalid refresh token' });
+        return reply.status(401).send({ 
+          success: false, 
+          message: 'Invalid refresh token',
+          data: null,
+          error: { code: 'INVALID_REFRESH_TOKEN' }
+        });
       }
 
       const newAccessToken = AuthService.signAccessToken(payload, process.env.JWT_SECRET || 'secret');
-      return { accessToken: newAccessToken };
+      return { 
+        success: true,
+        message: 'Token refreshed',
+        data: { accessToken: newAccessToken },
+        error: null
+      };
     } catch (err) {
-      return reply.status(401).send({ message: 'Token refresh failed' });
+      return reply.status(401).send({ 
+        success: false, 
+        message: 'Token refresh failed',
+        data: null,
+        error: { code: 'REFRESH_FAILED' }
+      });
     }
   });
 
   fastify.post('/signup', async (request, reply) => {
-    const { email, password, organizationName, role } = signupSchema.parse(request.body);
+    try {
+      const { email, password, organizationName, role } = signupSchema.parse(request.body);
+      const db = request.db;
+      const result = await db.transaction().execute(async (trx: any) => {
+        const existingUser = await trx
+          .selectFrom('users')
+          .where('email', '=', email)
+          .executeTakeFirst();
 
-    const db = request.db;
-    return await db.transaction().execute(async (trx: any) => {
-      const existingUser = await trx
-        .selectFrom('users')
-        .where('email', '=', email)
-        .executeTakeFirst();
+        if (existingUser) {
+          throw new Error('User already exists');
+        }
 
-      if (existingUser) {
-        throw new Error('User already exists');
-      }
+        const org = await trx
+          .insertInto('organizations')
+          .values({ name: organizationName || 'My Restaurant Group' })
+          .returning('id')
+          .executeTakeFirstOrThrow();
 
-      const org = await trx
-        .insertInto('organizations')
-        .values({ name: organizationName || 'My Restaurant Group' })
-        .returning('id')
-        .executeTakeFirstOrThrow();
+        const restaurant = await trx
+          .insertInto('restaurants')
+          .values({ organization_id: org.id, name: 'Default Restaurant' })
+          .returning('id')
+          .executeTakeFirstOrThrow();
 
-      const restaurant = await trx
-        .insertInto('restaurants')
-        .values({ organization_id: org.id, name: 'Default Restaurant' })
-        .returning('id')
-        .executeTakeFirstOrThrow();
+        const passwordHash = await AuthService.hashPassword(password);
+        
+        const user = await trx
+          .insertInto('users')
+          .values({
+            email,
+            password_hash: passwordHash,
+            role: role || ROLES.OWNER,
+            organization_id: org.id,
+            is_active: true,
+          })
+          .returning(['id', 'email', 'role'])
+          .executeTakeFirstOrThrow();
 
-      const passwordHash = await AuthService.hashPassword(password);
-      
-      const user = await trx
-        .insertInto('users')
-        .values({
-          email,
-          password_hash: passwordHash,
-          role: role || ROLES.OWNER,
-          organization_id: org.id,
-          is_active: true,
-        })
-        .returning(['id', 'email', 'role'])
-        .executeTakeFirstOrThrow();
+        await trx
+          .insertInto('user_restaurants')
+          .values({ user_id: user.id, restaurant_id: restaurant.id })
+          .execute();
 
-      await trx
-        .insertInto('user_restaurants')
-        .values({ user_id: user.id, restaurant_id: restaurant.id })
-        .execute();
+        return { user, organizationId: org.id };
+      });
 
-      return { user, organizationId: org.id };
-    });
+      return {
+        success: true,
+        message: 'Account created successfully',
+        data: result,
+        error: null
+      };
+    } catch (err: any) {
+      return reply.status(400).send({
+        success: false,
+        message: err.message || 'Signup failed',
+        data: null,
+        error: { code: 'SIGNUP_FAILED' }
+      });
+    }
   });
 
   fastify.post('/logout', async (request, reply) => {
@@ -197,22 +259,37 @@ export default async function authRoutes(fastify: FastifyInstance) {
       await (fastify as any).redis.set(`denylist:${user.jti}`, '1', 'EX', remainingTtl);
       await (fastify as any).redis.del(`refresh_token:${user.userId}`);
     }
-    return { message: 'Logged out' };
+    return { 
+      success: true, 
+      message: 'Logged out successfully',
+      data: null,
+      error: null 
+    };
   });
 
   fastify.post('/admin-login', async (request, reply) => {
-    // Reuse login logic or guard
     const { email, password } = loginSchema.parse(request.body);
     const db = request.db;
     const user = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
     
     if (!user || user.role !== ROLES.SUPER_ADMIN || !(await AuthService.comparePassword(password, user.password_hash))) {
-      return reply.status(403).send({ message: 'Admin access denied' });
+      return reply.status(403).send({ 
+        success: false,
+        message: 'Admin access denied',
+        data: null,
+        error: { code: 'FORBIDDEN' }
+      });
     }
     
-    // Issue token...
     const payload = { userId: user.id, role: user.role, restaurantIds: [] };
     const accessToken = AuthService.signAccessToken(payload, process.env.JWT_SECRET || 'secret');
-    return { accessToken, user: { id: user.id, email: user.email, role: user.role } };
+    
+    return { 
+      success: true,
+      message: 'Admin login successful',
+      data: { accessToken, user: { id: user.id, email: user.email, role: user.role } },
+      error: null
+    };
   });
 }
+

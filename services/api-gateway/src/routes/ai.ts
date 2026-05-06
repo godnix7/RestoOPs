@@ -8,7 +8,12 @@ export default async function aiRoutes(fastify: FastifyInstance) {
     const { conversationId, restaurantId, message } = aiChatRequestSchema.parse(request.body);
     const user = request.user as any;
 
-    if (!user) return reply.status(401).send({ message: 'Unauthorized' });
+    if (!user) return reply.status(401).send({ 
+      success: false,
+      message: 'Unauthorized',
+      data: null,
+      error: { code: 'UNAUTHORIZED' }
+    });
 
     const result = await AiOrchestrator.handleChat(
       user.userId,
@@ -17,11 +22,21 @@ export default async function aiRoutes(fastify: FastifyInstance) {
       conversationId
     );
 
-    return result;
+    return {
+      success: true,
+      message: 'Chat processed',
+      data: result,
+      error: null
+    };
   });
 
   fastify.get('/conversations', async (request, reply) => {
-    // Implementation for listing recent chats
-    return [];
+    return {
+      success: true,
+      message: 'Conversations retrieved',
+      data: [],
+      error: null
+    };
   });
 }
+

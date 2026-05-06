@@ -9,12 +9,17 @@ export default async function policyRoutes(fastify: FastifyInstance) {
       .selectAll()
       .where('is_published', '=', true)
       .execute();
-    return policies;
+    return {
+      success: true,
+      message: 'Policies retrieved',
+      data: policies,
+      error: null
+    };
   });
 
   fastify.get('/pending', async (request, reply) => {
     const user = request.user as any;
-    if (!user) return [];
+    if (!user) return { success: true, data: [], error: null };
 
     const db = request.db;
 
@@ -31,7 +36,12 @@ export default async function policyRoutes(fastify: FastifyInstance) {
       .where('id', 'not in', acceptedIds)
       .execute();
 
-    return pending;
+    return {
+      success: true,
+      message: 'Pending policies retrieved',
+      data: pending,
+      error: null
+    };
   });
 
   fastify.post('/accept', async (request, reply) => {
@@ -50,6 +60,12 @@ export default async function policyRoutes(fastify: FastifyInstance) {
       .values(acceptances)
       .execute();
 
-    return { message: 'Policies accepted' };
+    return { 
+      success: true, 
+      message: 'Policies accepted',
+      data: null,
+      error: null 
+    };
   });
 }
+

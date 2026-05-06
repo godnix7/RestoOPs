@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, ArrowRight, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { setAccessToken } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,30 +24,35 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      const response = await res.json();
+      if (response.success) {
+        const { data } = response;
         if (data.mfaRequired) {
           // TODO: Handle MFA in UI
           setError('MFA required - feature coming soon');
           return;
         }
         
+        // Store token in memory
+        setAccessToken(data.accessToken);
+        
         // Set cookies via server route
         await fetch('/api/auth/set-cookie', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: data.accessToken, refreshToken: data.refreshToken }),
-        });
-        
-        router.push('/');
+        // Navigate to dashboard with a full reload to ensure middleware picks up the new cookie
+        window.location.href = '/';
       } else {
-        setError(data.message || 'Login failed');
+
+        setError(response.message || 'Login failed');
       }
     } catch (err) {
       setError('Connection error. Please try again later.');
     } finally {
       setLoading(false);
     }
+
   };
 
   return (

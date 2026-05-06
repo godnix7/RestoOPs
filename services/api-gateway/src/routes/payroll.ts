@@ -7,7 +7,12 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
   fastify.get('/runs/current', async (request, reply) => {
     const db = request.db;
     const restaurantId = (request.query as any).restaurantId;
-    if (!restaurantId) return reply.status(400).send({ message: 'restaurantId required' });
+    if (!restaurantId) return reply.status(400).send({ 
+      success: false,
+      message: 'restaurantId required',
+      data: null,
+      error: { code: 'BAD_REQUEST' }
+    });
 
     const run = await db
       .selectFrom('payroll_runs')
@@ -16,7 +21,12 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
       .where('status', 'in', ['draft', 'pending'])
       .executeTakeFirst();
 
-    if (!run) return { message: 'No active payroll run' };
+    if (!run) return { 
+      success: true,
+      message: 'No active payroll run',
+      data: null,
+      error: null
+    };
 
     const lineItems = await db
       .selectFrom('payroll_line_items')
@@ -24,7 +34,12 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
       .where('payroll_run_id', '=', run.id)
       .execute();
 
-    return { ...run, lineItems };
+    return { 
+      success: true,
+      message: 'Current payroll run retrieved',
+      data: { ...run, lineItems },
+      error: null
+    };
   });
 
   fastify.post('/runs/:id/approve', {
@@ -32,9 +47,7 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as any;
     const user = request.user as any;
-    const db = request.db;
-
-    // Use RLS helper
+    
     return await request.rls(async (trx) => {
       // Check for open exceptions
       const exceptions = await trx
@@ -46,8 +59,10 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
 
       if (exceptions.length > 0) {
         return reply.status(400).send({ 
+          success: false,
           message: 'Cannot approve payroll with open exceptions',
-          exceptionCount: exceptions.length 
+          data: { exceptionCount: exceptions.length },
+          error: { code: 'PENDING_EXCEPTIONS' }
         });
       }
 
@@ -61,7 +76,13 @@ export default async function payrollRoutes(fastify: FastifyInstance) {
         .where('id', '=', id)
         .execute();
 
-      return { message: 'Payroll approved' };
+      return { 
+        success: true,
+        message: 'Payroll approved',
+        data: null,
+        error: null
+      };
     });
   });
 }
+

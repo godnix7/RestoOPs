@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Mail, Lock, ArrowRight, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { setAccessToken } from '@/lib/apiClient';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -25,22 +26,27 @@ export default function AdminLoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      const response = await res.json();
+      if (response.success) {
+        const { data } = response;
         if (data.mfaRequired) {
           setTempToken(data.tempToken);
           setStep(2);
         } else {
+          // Store token in memory
+          setAccessToken(data.accessToken);
+
           // Set cookies via server route
           await fetch('/api/auth/set-cookie', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ adminToken: data.accessToken }),
           });
-          router.push('/');
+          window.location.href = '/';
+
         }
       } else {
-        setError(data.message || 'Login failed');
+        setError(response.message || 'Login failed');
       }
     } catch (err) {
       setError('Connection error');
@@ -59,16 +65,22 @@ export default function AdminLoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code: mfaCode }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      const response = await res.json();
+      if (response.success) {
+        const { data } = response;
+        // Store token in memory
+        setAccessToken(data.accessToken);
+
         await fetch('/api/auth/set-cookie', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ adminToken: data.accessToken }),
         });
-        router.push('/');
+        window.location.href = '/';
+
+
       } else {
-        setError(data.message || 'MFA failed');
+        setError(response.message || 'MFA failed');
       }
     } catch (err) {
       setError('Verification error');
@@ -76,6 +88,7 @@ export default function AdminLoginPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-admin-animate flex items-center justify-center p-6 text-slate-200">

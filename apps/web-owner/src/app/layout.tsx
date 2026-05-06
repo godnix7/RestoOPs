@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Automate your restaurant's back-office with AI-powered accounting, payroll, and reporting.",
 };
 
+import Providers from "@/components/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,8 +27,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark h-full antialiased">
       <body className={`${inter.variable} ${outfit.variable} font-sans min-h-full flex flex-col`}>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
 }
+

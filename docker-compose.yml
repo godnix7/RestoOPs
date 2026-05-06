@@ -20,7 +20,7 @@ services:
       - "6379:6379"
 
   localstack:
-    image: localstack/localstack
+    image: localstack/localstack-community:latest
     container_name: restroops-s3
     ports:
       - "4566:4566"
